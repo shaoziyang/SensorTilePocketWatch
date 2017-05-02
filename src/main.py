@@ -1,11 +1,16 @@
-# main.py -- put your code here!
+# SensorTile Poket watch
+# by shaoziyang 2017
+# http://www.micropython.org.cn
+# https://github.com/shaoziyang/SensorTilePocketWatch
+
+
 import pyb
 from st import SensorTile
 from pyb import Timer, Pin, ExtInt, RTC
 from micropython import const
 import baticon
 
-SLEEPCNT = const(10)
+SLEEPCNT = const(18)
 SW_PIN = 'PG11'
 VUSB_PIN = 'PG10'
 
@@ -37,7 +42,7 @@ def rtcisr(t):
     return
     
 rtc=RTC()
-rtc.init()
+#rtc.init()
 rtc.wakeup(1000, rtcisr)
 
 def tmisr(t):
@@ -46,19 +51,15 @@ def tmisr(t):
 
 tm = Timer(1, freq=1, callback=tmisr)
 
-'''def puts(s, x, y):
-    oled.framebuf.fill_rect(x, y, 8*len(s), 8, 0)
-    oled.text(s, x, y)
-'''
 def show_bat():
     oled.puts('%4.2fV'%st.BatVolt(), 16, 56)
     oled.puts('%2d'%sleepcnt, 112, 56)
     oled.show()
 
 def show_press(page):
-    if(page==0):
+    if(page==1):
         oled.puts('%8.3f'%st.P(), 64, 0)
-    elif(page==1):
+    elif(page==2):
         oled.msg('%8.3f'%st.P(), 48, 20)
         oled.msg("%5.1fC"%st.T(), 72, 36)
 
@@ -66,38 +67,49 @@ def show_temp():
     oled.puts("%5.1fC"%st.T(), 64, 56)
 
 def show_accel(page):
-    if(page==0):
+    if(page==1):
         oled.puts("%7.2f"%st.AX(), 64, 8)
         oled.puts("%7.2f"%st.AY(), 64, 16)
         oled.puts("%7.2f"%st.AZ(), 64, 24)
-    elif(page==2):
+    elif(page==3):
         oled.msg("%7.2f"%st.AX(), 56, 0)
         oled.msg("%7.2f"%st.AY(), 56, 16)
         oled.msg("%7.2f"%st.AZ(), 56, 32)
 
 def show_gyro(page):
-    if(page==0):
+    if(page==1):
         oled.puts("%7.2f"%st.GX(), 64, 32)
         oled.puts("%7.2f"%st.GY(), 64, 40)
         oled.puts("%7.2f"%st.GZ(), 64, 48)
-    elif(page==3):
+    elif(page==4):
         oled.msg("%7.2f"%st.GX(), 56, 0)
         oled.msg("%7.2f"%st.GY(), 56, 16)
         oled.msg("%7.2f"%st.GZ(), 56, 32)
-    
-    
+
 def show_title(page):
     oled.fill(0)    # clear screen
     if(page==1):
-        oled.msg("Press", 0, 0)
-    elif(page==2):
-        oled.msg("Accel", 0, 0)
-    elif(page==3):
-        oled.msg("Gyro", 0, 0)
-    else:
         oled.puts("Press:", 0, 0)
         oled.puts("Accel:", 0, 8)
-        oled.puts("Gyro:", 0, 32)
+        oled.puts("Gyro:", 0, 32)    
+    elif(page==2):
+        oled.msg("Press", 0, 0)
+    elif(page==3):
+        oled.msg("Accel", 0, 0)
+    elif(page==4):
+        oled.msg("Gyro", 0, 0)
+
+def show_time():
+    d = rtc.datetime()
+    if(page==0):
+        s = "%04d"%d[0]+"-"+"%02d"%d[1]+"-"+"%02d"%d[2]
+        oled.msg(s, 16, 4)
+        s = "%02d"%d[4]+":"+"%02d"%d[5]+":"+"%02d"%d[6]
+        oled.msg(s, 16, 28)
+        oled.puts("%8.1fC"%st.T(), 64, 56)
+    else:
+        s = "%02d"%d[4]+":"+"%02d"%d[5]+":"+"%02d"%d[6]
+        oled.puts(s, 64, 56)
 
 def swisr(t):
     global keypressed
@@ -139,10 +151,10 @@ while True:
         if(keypressed):
             keypressed = 0
             sleepcnt = SLEEPCNT
-            page = (page + 1)%4
+            page = (page + 1)%5
             show_title(page)
 
-
+        # key long pressed
         if(btn()==0):
             keycnt = keycnt + 1
             if(keycnt > 3):
@@ -154,10 +166,11 @@ while True:
         show_press(page)
         show_accel(page)
         show_gyro(page)
-        show_temp()
         
         #show battery
         showbat()
+        
+        show_time()
         
         #power save
         if(vusb()==0):
@@ -170,11 +183,12 @@ while True:
                     #machine.sleep()
                     if(btn()==0):
                         break;
+                keypressed = 0
                 oled.poweron()
                 sleepcnt = SLEEPCNT
-            oled.puts('%2d'%sleepcnt, 112, 56)
+            oled.puts('%d'%sleepcnt, 120, 48)
         else:
-            oled.puts('  ', 112, 56)
+            oled.puts(' ', 120, 48)
 
         oled.show()
 
